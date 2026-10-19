@@ -10,7 +10,12 @@ data = Pin(18, Pin.OUT)
 
 NUM_LEDS = 10
 TARGET = 25000
+MAX_BRIGHTNESS = 15
 brightness = 0
+
+def set_white(level):
+    value = int(level*255/100)
+    show((value, value, value))
 
 # WS2813/WS2812 계열에 데이터를 보내는 함수
 # MicroPython RP2의 타이밍에 의존하므로,
@@ -63,9 +68,9 @@ try:
 
         # 어두울수록 LED 밝기를 높임
         if value < TARGET:
-            brightness = min(100, brightness + 5)
+            brightness = min(MAX_BRIGHTNESS, brightness + 1)
         else:
-            brightness = max(0, brightness - 5)
+            brightness = max(0, brightness - 1)
 
         set_white(brightness)
 
