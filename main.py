@@ -45,21 +45,25 @@ sm = rp2.StateMachine(
 )
 sm.active(1)
 
+
 def show(color):
-    # 각 픽셀에 24비트 GRB 데이터 전송
-    grb = ((color[1] & 255) << 16) | \
-          ((color[0] & 255) << 8) | \
-          (color[2] & 255)
+    # WS2813의 일반적인 색상 순서: GRB
+    grb = (
+        ((color[1] & 255) << 16)
+        | ((color[0] & 255) << 8)
+        | (color[2] & 255)
+    )
 
     for _ in range(NUM_LEDS):
         sm.put(grb, 24)
 
     sleep_us(80)
 
+
 def set_white(level):
+    # 최대 밝기 15%로 제한
     value = int(level * 255 / 100)
     show((value, value, value))
-
 print("자동 독서등 시작")
 
 try:
