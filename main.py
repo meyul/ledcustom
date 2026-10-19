@@ -1,48 +1,78 @@
 
-from machine import ADC
-from ws2812 import WS2812
-from time import sleep
+from machine import ADC, Pin
+from time import sleep_us, sleep
 
-# 조도 센서: A0
-light_sensor = ADC(0)
+# 조도 센서: A0 (GP26)
+sensor = ADC(26)
 
-# RGB LED 스틱: D18, LED 10개
-led = WS2812(18, 10)
+# Grove RGB LED Stick: D18 (GP18)
+data = Pin(18, Pin.OUT)
 
-# 설정
+NUM_LEDS = 10
 TARGET = 25000
-MAX_BRIGHTNESS = 100
-MIN_BRIGHTNESS = 0
-
 brightness = 0
 
-def set_white(level):
-    # level: 0~100
-    value = int(level * 255 / 100)
-    led.pixels_fill((value, value, value))
-    led.pixels_show()
+# WS2813/WS2812 계열에 데이터를 보내는 함수
+# MicroPython RP2의 타이밍에 의존하므로,
+# 실제 하드웨어에서 테스트가 필요함.
+import rp2
 
-print("자동 독서등 시작!")
+@rp2.asm_pio(
+    sideset_init=rp2.PIO.OUT_LOW,
+    out_shiftdir=rp2.PIO.SHIFT_LEFT,
+    autopull=True,
+    pull_thresh=24
+)
+def ws281x():
+    T1 = 2
+    T2 = 5
+    T3 = 3
+
+    label("bitloop")
+    out(x, 1).side(0)[T3 - 1]
+    jmp(not_x, "do_zero").side(1)[T1 - 1]
+    jmp("bitloop").side(1)[T2 - 1]
+    label("do_zero")
+    nop().side(0)[T2 - 1]
+
+sm = rp2.StateMachine(
+    0, ws281x, freq=8000000, sideset_base=data
+)
+sm.active(1)
+
+def show(color):
+    # 각 픽셀에 24비트 GRB 데이터 전송
+    grb = ((color[1] & 255) << 16) | \
+          ((color[0] & 255) << 8) | \
+          (color[2] & 255)
+
+    for _ in range(NUM_LEDS):
+        sm.put(grb, 24)
+
+    sleep_us(80)
+
+def set_white(level):
+    value = int(level * 255 / 100)
+    show((value, value, value))
+
+print("자동 독서등 시작")
 
 try:
     while True:
-        light_value = light_sensor.read_u16()
+        value = sensor.read_u16()
 
-        # 센서값을 확인하면서 기준값에 따라 LED 조절
-        if light_value < TARGET:
-            brightness = min(MAX_BRIGHTNESS, brightness + 5)
+        # 어두울수록 LED 밝기를 높임
+        if value < TARGET:
+            brightness = min(100, brightness + 5)
         else:
-            brightness = max(MIN_BRIGHTNESS, brightness - 5)
+            brightness = max(0, brightness - 5)
 
         set_white(brightness)
 
-        print(
-            "조도 센서:", light_value,
-            "| LED 밝기:", brightness, "%"
-        )
-
+        print("센서:", value, "| LED 밝기:", brightness, "%")
         sleep(0.2)
 
 except KeyboardInterrupt:
     set_white(0)
-    print("독서등 종료")
+    sm.active(0)
+    print("종료")
