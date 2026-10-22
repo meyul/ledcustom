@@ -1,13 +1,2 @@
-from ws2812 import WS2812
-from time import sleep
-
-led = WS2812(18, 10)
-
-# 10개 LED 모두 흰색
-led.pixels_fill((255, 255, 255))
-led.pixels_show()
-
-print("흰색 테스트 완료")
-
-while True:
-    sleep(1)
+import os
+print(os.listdir())
