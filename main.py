@@ -1,6 +1,7 @@
-
+```python
 from machine import ADC, Pin
 from time import sleep_us, sleep
+import rp2
 
 # 조도 센서: A0 (GP26)
 sensor = ADC(26)
@@ -11,16 +12,9 @@ data = Pin(18, Pin.OUT)
 NUM_LEDS = 10
 TARGET = 25000
 MAX_BRIGHTNESS = 15
+
 brightness = 0
 
-def set_white(level):
-    value = int(level*255/100)
-    show((value, value, value))
-
-# WS2813/WS2812 계열에 데이터를 보내는 함수
-# MicroPython RP2의 타이밍에 의존하므로,
-# 실제 하드웨어에서 테스트가 필요함.
-import rp2
 
 @rp2.asm_pio(
     sideset_init=rp2.PIO.OUT_LOW,
@@ -40,6 +34,7 @@ def ws281x():
     label("do_zero")
     nop().side(0)[T2 - 1]
 
+
 sm = rp2.StateMachine(
     0, ws281x, freq=8000000, sideset_base=data
 )
@@ -47,7 +42,7 @@ sm.active(1)
 
 
 def show(color):
-    # WS2813의 일반적인 색상 순서: GRB
+    # RGB 색상을 GRB 순서로 변환
     grb = (
         ((color[1] & 255) << 16)
         | ((color[0] & 255) << 8)
@@ -61,27 +56,40 @@ def show(color):
 
 
 def set_white(level):
-    # 최대 밝기 15%로 제한
+    # 밝기를 0~15%로 제한하고 흰색 출력
+    level = max(0, min(MAX_BRIGHTNESS, level))
     value = int(level * 255 / 100)
+
+    # R, G, B를 모두 같은 값으로 설정 → 흰색
     show((value, value, value))
+
+
 print("자동 독서등 시작")
 
 try:
     while True:
         value = sensor.read_u16()
 
-        # 어두울수록 LED 밝기를 높임
+        # 어두우면 밝기 증가, 밝으면 밝기 감소
         if value < TARGET:
-            brightness = min(MAX_BRIGHTNESS, brightness + 1)
+            brightness = min(
+                MAX_BRIGHTNESS, brightness + 1
+            )
         else:
             brightness = max(0, brightness - 1)
 
         set_white(brightness)
 
-        print("센서:", value, "| LED 밝기:", brightness, "%")
+        print(
+            "센서:", value,
+            "| LED 밝기:", brightness, "%"
+        )
+
         sleep(0.2)
 
 except KeyboardInterrupt:
     set_white(0)
+    sleep_us(80)
     sm.active(0)
     print("종료")
+```
