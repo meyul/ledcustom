@@ -15,6 +15,7 @@ MAX_BRIGHTNESS = 15
 brightness = 0
 
 
+# WS2812 계열 LED 데이터 전송
 @rp2.asm_pio(
     sideset_init=rp2.PIO.OUT_LOW,
     out_shiftdir=rp2.PIO.SHIFT_LEFT,
@@ -35,31 +36,34 @@ def ws281x():
 
 
 sm = rp2.StateMachine(
-    0, ws281x, freq=8000000, sideset_base=data
+    0,
+    ws281x,
+    freq=8000000,
+    sideset_base=data
 )
 sm.active(1)
 
 
 def show(color):
-    # RGB 색상을 GRB 순서로 변환
+    # RGB 순서로 색상 데이터 구성
     rgb = (
-    ((color[0] & 255) << 16)
-    | ((color[1] & 255) << 8)
-    | (color[2] & 255)
-)
+        ((color[0] & 255) << 16)
+        | ((color[1] & 255) << 8)
+        | (color[2] & 255)
+    )
 
-for _ in range(NUM_LEDS):
-    sm.put(rgb, 24)
+    for _ in range(NUM_LEDS):
+        sm.put(rgb, 24)
 
-sleep_us(80)
+    sleep_us(80)
 
 
 def set_white(level):
-    # 밝기를 0~15%로 제한하고 흰색 출력
+    # 밝기 범위를 0~15%로 제한
     level = max(0, min(MAX_BRIGHTNESS, level))
     value = int(level * 255 / 100)
 
-    # R, G, B를 모두 같은 값으로 설정 → 흰색
+    # 빨강 + 초록 + 파랑을 같은 세기로 켜서 흰색 출력
     show((value, value, value))
 
 
@@ -69,13 +73,17 @@ try:
     while True:
         value = sensor.read_u16()
 
-        # 어두우면 밝기 증가, 밝으면 밝기 감소
+        # 어두울수록 밝기 증가
         if value < TARGET:
             brightness = min(
-                MAX_BRIGHTNESS, brightness + 1
+                MAX_BRIGHTNESS,
+                brightness + 1
             )
         else:
-            brightness = max(0, brightness - 1)
+            brightness = max(
+                0,
+                brightness - 1
+            )
 
         set_white(brightness)
 
