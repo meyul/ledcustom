@@ -1,4 +1,3 @@
-```python
 from machine import ADC, Pin
 from time import sleep_us, sleep
 import rp2
@@ -92,4 +91,3 @@ except KeyboardInterrupt:
     sleep_us(80)
     sm.active(0)
     print("종료")
-```
