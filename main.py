@@ -42,16 +42,16 @@ sm.active(1)
 
 def show(color):
     # RGB 색상을 GRB 순서로 변환
-    grb = (
-        ((color[1] & 255) << 16)
-        | ((color[0] & 255) << 8)
-        | (color[2] & 255)
-    )
+    rgb = (
+    ((color[0] & 255) << 16)
+    | ((color[1] & 255) << 8)
+    | (color[2] & 255)
+)
 
-    for _ in range(NUM_LEDS):
-        sm.put(grb, 24)
+for _ in range(NUM_LEDS):
+    sm.put(rgb, 24)
 
-    sleep_us(80)
+sleep_us(80)
 
 
 def set_white(level):
