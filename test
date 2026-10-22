@@ -1,44 +1,13 @@
-from machine import Pin
-from time import sleep_us, sleep
-import rp2
+from ws2812 import WS2812
+from time import sleep
 
-data = Pin(18, Pin.OUT)
-NUM_LEDS = 10
+led = WS2812(18, 10)
 
-@rp2.asm_pio(
-    sideset_init=rp2.PIO.OUT_LOW,
-    out_shiftdir=rp2.PIO.SHIFT_LEFT,
-    autopull=True,
-    pull_thresh=24
-)
-def ws281x():
-    T1 = 2
-    T2 = 5
-    T3 = 3
+# 10개 LED 모두 흰색
+led.pixels_fill((255, 255, 255))
+led.pixels_show()
 
-    label("bitloop")
-    out(x, 1).side(0)[T3 - 1]
-    jmp(not_x, "do_zero").side(1)[T1 - 1]
-    jmp("bitloop").side(1)[T2 - 1]
-    label("do_zero")
-    nop().side(0)[T2 - 1]
-
-sm = rp2.StateMachine(
-    0, ws281x, freq=8000000, sideset_base=data
-)
-sm.active(1)
-
-def show_white():
-    # GRB 순서: 초록 255, 빨강 255, 파랑 255
-    grb = (255 << 16) | (255 << 8) | 255
-
-    for _ in range(NUM_LEDS):
-        sm.put(grb, 24)
-
-    sleep_us(80)
-
-print("최대 흰색 테스트 시작")
-show_white()
+print("흰색 테스트 완료")
 
 while True:
     sleep(1)
