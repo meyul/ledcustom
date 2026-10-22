@@ -15,7 +15,6 @@ MAX_BRIGHTNESS = 15
 brightness = 0
 
 
-# WS2812 계열 LED 데이터 전송
 @rp2.asm_pio(
     sideset_init=rp2.PIO.OUT_LOW,
     out_shiftdir=rp2.PIO.SHIFT_LEFT,
@@ -45,25 +44,25 @@ sm.active(1)
 
 
 def show(color):
-    # RGB 순서로 색상 데이터 구성
-    rgb = (
-        ((color[0] & 255) << 16)
-        | ((color[1] & 255) << 8)
+    # WS2812 계열 LED의 GRB 데이터 순서
+    grb = (
+        ((color[1] & 255) << 16)
+        | ((color[0] & 255) << 8)
         | (color[2] & 255)
     )
 
     for _ in range(NUM_LEDS):
-        sm.put(rgb, 24)
+        sm.put(grb, 24)
 
     sleep_us(80)
 
 
 def set_white(level):
-    # 밝기 범위를 0~15%로 제한
+    # 밝기 0~15% 제한
     level = max(0, min(MAX_BRIGHTNESS, level))
     value = int(level * 255 / 100)
 
-    # 빨강 + 초록 + 파랑을 같은 세기로 켜서 흰색 출력
+    # 흰색: R, G, B 채널 모두 같은 밝기
     show((value, value, value))
 
 
@@ -73,7 +72,7 @@ try:
     while True:
         value = sensor.read_u16()
 
-        # 어두울수록 밝기 증가
+        # 어두우면 밝게, 밝으면 어둡게
         if value < TARGET:
             brightness = min(
                 MAX_BRIGHTNESS,
