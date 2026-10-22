@@ -1,2 +1,16 @@
-import os
-print(os.listdir())
+from machine import Pin
+import neopixel
+from time import sleep
+
+led = neopixel.NeoPixel(Pin(18), 10)
+
+# 모든 LED를 최대 흰색으로
+for i in range(10):
+    led[i] = (255, 255, 255)
+
+led.write()
+
+print("흰색 테스트 완료")
+
+while True:
+    sleep(1)
