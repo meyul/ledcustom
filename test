@@ -1,16 +1,105 @@
-from machine import Pin
-import neopixel
+from machine import ADC, Pin
 from time import sleep
+import neopixel
 
-led = neopixel.NeoPixel(Pin(18), 10)
+# 조도 센서 3개
+sensor1 = ADC(26)  # A0
+sensor2 = ADC(27)  # A1
+sensor3 = ADC(28)  # A2
 
-# 모든 LED를 최대 흰색으로
-for i in range(10):
-    led[i] = (255, 255, 255)
+# Grove RGB LED Stick
+NUM_LEDS = 10
+led = neopixel.NeoPixel(Pin(18), NUM_LEDS)
 
-led.write()
+# 설정값
+TARGET = 25000
+MAX_BRIGHTNESS = 15
 
-print("흰색 테스트 완료")
+# 센서별 밝기
+brightness1 = 0
+brightness2 = 0
+brightness3 = 0
 
-while True:
-    sleep(1)
+
+def set_white(start, end, level):
+    # 밝기 범위 제한
+    level = max(0, min(MAX_BRIGHTNESS, level))
+
+    # 밝기를 RGB 값으로 변환
+    value = int(level * 255 / 100)
+
+    # 지정한 LED 구역에 흰색 출력
+    for i in range(start, end):
+        led[i] = (value, value, value)
+
+
+def update_brightness(sensor_value, brightness):
+    # 어두우면 밝기 증가
+    if sensor_value < TARGET:
+        brightness = min(
+            MAX_BRIGHTNESS,
+            brightness + 1
+        )
+
+    # 밝으면 밝기 감소
+    else:
+        brightness = max(
+            0,
+            brightness - 1
+        )
+
+    return brightness
+
+
+print("3구역 자동 독서등 시작")
+
+try:
+    while True:
+
+        # 센서값 읽기
+        value1 = sensor1.read_u16()
+        value2 = sensor2.read_u16()
+        value3 = sensor3.read_u16()
+
+        # 센서별 밝기 조절
+        brightness1 = update_brightness(
+            value1, brightness1
+        )
+
+        brightness2 = update_brightness(
+            value2, brightness2
+        )
+
+        brightness3 = update_brightness(
+            value3, brightness3
+        )
+
+        # 구역별 흰색 LED 출력
+        set_white(0, 3, brightness1)
+        set_white(3, 6, brightness2)
+        set_white(6, 10, brightness3)
+
+        # LED 업데이트
+        led.write()
+
+        # 센서값 및 밝기 출력
+        print(
+            "A0:", value1,
+            "밝기:", brightness1,
+            "| A1:", value2,
+            "밝기:", brightness2,
+            "| A2:", value3,
+            "밝기:", brightness3
+        )
+
+        sleep(0.2)
+
+except KeyboardInterrupt:
+
+    # 종료 시 LED 모두 끄기
+    for i in range(NUM_LEDS):
+        led[i] = (0, 0, 0)
+
+    led.write()
+
+    print("독서등 종료")
