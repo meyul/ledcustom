@@ -1,3 +1,6 @@
+# Release: v1.2
+# 3구역 독립 제어 자동 흰색 독서등
+
 from machine import ADC, Pin
 from time import sleep
 import neopixel
@@ -7,35 +10,26 @@ sensor1 = ADC(26)  # A0
 sensor2 = ADC(27)  # A1
 sensor3 = ADC(28)  # A2
 
-# Grove RGB LED Stick
+# RGB LED Stick
 NUM_LEDS = 10
 led = neopixel.NeoPixel(Pin(18), NUM_LEDS)
 
 # 설정값
-TARGET = 25000
+TARGET1 = 25000
+TARGET2 = 25000
+TARGET3 = 25000
+
 MAX_BRIGHTNESS = 15
 
-# 센서별 밝기
+# 센서별 밝기 상태
 brightness1 = 0
 brightness2 = 0
 brightness3 = 0
 
 
-def set_white(start, end, level):
-    # 밝기 범위 제한
-    level = max(0, min(MAX_BRIGHTNESS, level))
-
-    # 밝기를 RGB 값으로 변환
-    value = int(level * 255 / 100)
-
-    # 지정한 LED 구역에 흰색 출력
-    for i in range(start, end):
-        led[i] = (value, value, value)
-
-
-def update_brightness(sensor_value, brightness):
+def update_brightness(value, target, brightness):
     # 어두우면 밝기 증가
-    if sensor_value < TARGET:
+    if value < target:
         brightness = min(
             MAX_BRIGHTNESS,
             brightness + 1
@@ -51,52 +45,64 @@ def update_brightness(sensor_value, brightness):
     return brightness
 
 
-print("3구역 자동 독서등 시작")
+def set_white(start, end, level):
+    # 밝기 범위 제한
+    level = max(0, min(MAX_BRIGHTNESS, level))
+
+    # RGB 흰색 밝기 계산
+    value = int(level * 255 / 100)
+
+    # 지정 구역만 설정
+    for i in range(start, end):
+        led[i] = (value, value, value)
+
+
+print("자동 독서등 v1.2 시작")
 
 try:
     while True:
 
-        # 센서값 읽기
+        # 센서별 측정값
         value1 = sensor1.read_u16()
         value2 = sensor2.read_u16()
         value3 = sensor3.read_u16()
 
-        # 센서별 밝기 조절
+        # 센서별 밝기 계산
         brightness1 = update_brightness(
-            value1, brightness1
+            value1, TARGET1, brightness1
         )
 
         brightness2 = update_brightness(
-            value2, brightness2
+            value2, TARGET2, brightness2
         )
 
         brightness3 = update_brightness(
-            value3, brightness3
+            value3, TARGET3, brightness3
         )
 
-        # 구역별 흰색 LED 출력
+        # 센서별 LED 구역 제어
         set_white(0, 3, brightness1)
         set_white(3, 6, brightness2)
         set_white(6, 10, brightness3)
 
-        # LED 업데이트
+        # LED 출력
         led.write()
 
-        # 센서값 및 밝기 출력
+        # 센서별 값 확인
         print(
             "A0:", value1,
-            "밝기:", brightness1,
-            "| A1:", value2,
-            "밝기:", brightness2,
-            "| A2:", value3,
-            "밝기:", brightness3
+            "| 밝기:", brightness1,
+            " || A1:", value2,
+            "| 밝기:", brightness2,
+            " || A2:", value3,
+            "| 밝기:", brightness3
         )
 
         sleep(0.2)
 
 except KeyboardInterrupt:
 
-    # 종료 시 LED 모두 끄기
+    # 종료 시 LED 끄기
     for i in range(NUM_LEDS):
         led[i] = (0, 0, 0)
 
