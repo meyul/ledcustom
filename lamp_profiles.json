@@ -1,0 +1,5 @@
+{
+  "0": {"name": "기본", "targets": [25000, 25000, 25000], "max_brightness": 15},
+  "1": {"name": "사용자 1", "targets": [28000, 28000, 28000], "max_brightness": 15},
+  "2": {"name": "사용자 2", "targets": [22000, 22000, 22000], "max_brightness": 12}
+}
